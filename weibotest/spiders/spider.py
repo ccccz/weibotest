@@ -75,7 +75,7 @@ class WeiboSpider(scrapy.Spider):
         ]
 
     def getNextUrl(self):
-        if(self.url_5<len(self.url_2)-1):
+        if(self.url_5<len(self.url_2)):
             url=self.url_1+self.url_2[self.url_5]+self.url_3
             if(self.url_4<self.weiboNum):
                 #self.weiboNum
@@ -83,6 +83,8 @@ class WeiboSpider(scrapy.Spider):
                 self.url_4=self.url_4+1
             else:
                 self.url_5=self.url_5+1
+                if(self.url_5==len(self.url_2)):
+                    return ''
                 self.url_4=0
                 url = self.url_1 + self.url_2[self.url_5] + self.url_3
                 url = url + str(self.url_4)
@@ -118,7 +120,7 @@ class WeiboSpider(scrapy.Spider):
                 item['time']=contents[-1]
                 temp=response.xpath('/html/body/div[@ class="c"]['+str(i)+']/div[1]/span/a[last()]')
                 if (temp.xpath('text()').extract())[0]=='全文':  #如果需要访问全文
-                    mRequest=scrapy.Request('https://weibo.cn'+(temp.xpath('@href').extract())[0], callback=self.getContent, headers=self.headers, cookies=self.cookies)
+                    mRequest=scrapy.Request('https://weibo.cn'+(temp.xpath('@href').extract())[0], callback=self.getContent, headers=self.headers, cookies=self.cookies,priority=1)
                     mRequest.meta['item']=item
                     yield mRequest
                 else:   #不需要访问全文
@@ -164,10 +166,13 @@ class WeiboSpider(scrapy.Spider):
                 item['at'] = self.getAts(item['content'])
                 self.printWeiboInfoItem(item)
                 yield item
-        if(self.url_4<self.weiboNum):
-            yield scrapy.Request(self.getNextUrl(), callback=self.sub_parse, headers=self.headers, cookies=self.cookies)
-        else:
-            yield scrapy.Request(self.getNextUrl(), callback=self.parse, headers=self.headers, cookies=self.cookies)
+        url = self.getNextUrl()
+        if (len(url) != 0):
+            if (self.url_4 < self.weiboNum):
+                yield scrapy.Request(url, callback=self.sub_parse, headers=self.headers,
+                                     cookies=self.cookies)
+            else:
+                yield scrapy.Request(url, callback=self.parse, headers=self.headers, cookies=self.cookies)
 
 
 
