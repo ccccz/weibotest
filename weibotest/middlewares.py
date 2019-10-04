@@ -1,11 +1,17 @@
-# -*- coding: utf-8 -*-
 
-# Define here the models for your spider middleware
-#
-# See documentation in:
-# https://doc.scrapy.org/en/latest/topics/spider-middleware.html
-
+import random
+import pymongo
+import json
+import logging
 from scrapy import signals
+from scrapy.downloadermiddlewares.useragent import UserAgentMiddleware
+from weibotest.settings import USER_AGENT_POOL
+from scrapy.downloadermiddlewares.retry import RetryMiddleware
+from weibotest.settings import MONGO_HOST
+from weibotest.settings import MONGO_PORT
+from weibotest.settings import MONGO_DB_NAME
+from weibotest.settings import COOKIES_COLLECTION_NAME
+from weibotest.cookies import init_cookies
 
 
 class WeibotestSpiderMiddleware(object):
@@ -101,3 +107,38 @@ class WeibotestDownloaderMiddleware(object):
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
+
+
+# User-Agent池中间件
+class WeibotestUserAgentMiddleware(UserAgentMiddleware):
+    def process_request(self, request, spider):
+        request.headers['User-Agent'] = random.choice(USER_AGENT_POOL)
+
+
+# Cookie池中间件
+class WeiboCookiesMiddleware(RetryMiddleware):
+
+    def __init__(self, settings, crawler):
+        self.logger = logging.getLogger("---Cookies池---")
+        RetryMiddleware.__init__(self, settings)
+        # 模拟登陆初始化 cookies，若注释掉需要手动向数据库中写入 cookies
+        # 写入格式为: username(string) cookies(json string)
+        # | username | cookies |
+        # | "qaswazxs@126.com" | "{"SSOLoginState": "1570157316", "SUB": "_2A25wksNUDeRhGedI7lER9i_Jzj6IHXVQfO0crDV6PUJbktANLW7HkW1NVzqyC0ntAqR8szHeQCefNRM41xZZJ3YI"}" |
+        # init_cookies()
+        client = pymongo.MongoClient(MONGO_HOST, MONGO_PORT)
+        db = client[MONGO_DB_NAME]
+        col = db[COOKIES_COLLECTION_NAME]
+        self.cookies_pool = []
+        for item in col.find():
+            self.cookies_pool.append(json.loads(item['cookies']))
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler.settings, crawler)
+
+    def process_request(self, request, spider):
+        random_cookies = random.choice(self.cookies_pool)
+        self.logger.warning("本次请求使用 cookies:")
+        self.logger.warning(random_cookies)
+        request.cookies = random_cookies
