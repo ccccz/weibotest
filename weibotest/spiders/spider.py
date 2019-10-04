@@ -2,6 +2,7 @@ import scrapy
 from weibotest.items import BaseInfoItem
 from weibotest.items import WeiboInfoItem
 import re
+import datetime
 
 class WeiboSpider(scrapy.Spider):
     name="weibo"
@@ -13,10 +14,10 @@ class WeiboSpider(scrapy.Spider):
         "ifudan"
     ]
     url_3="?page="
-    url_4=0   #搜索页面
+    url_4=389   #搜索页面
     url_5 = 0  #高校顺序url_2
 
-    weiboNum=0  #正在爬取的高校微博页数
+    weiboNum=1000  #正在爬取的高校微博页数
     headers={               #头部
         'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36'
     }
@@ -26,14 +27,15 @@ class WeiboSpider(scrapy.Spider):
     }
     cookies = {
         '_T_WM': '43586327469',
-        'ALF': '1572274973',
-        'SCF': 'Ath3LGFZX0FTfy5B1hPlXwqPBhTi85tlI__-vO50T-QtSkkb77xvvhlLiMFtFUfKo3prCgwPLcGnEu3W6QthKkM.',
-        'SUB': '_2A25wiwZ4DeRhGeBO61AR9CzOzz6IHXVQd6owrDV6PUJbktAKLU6lkW1NSkS9qS9zsx7tUcYItrkeBHPTKDFnL6Zi',
-        'SUBP': '0033WrSXqPxfM725Ws9jqgMF55529P9D9WWGEzsPZhUmybVP6rA5ve_.5JpX5K-hUgL.Foq7ehz7ShzEShz2dJLoIEBLxK-L12BL1h2LxK-L12BL1h2LxK-L12BL1h2LxKqL1KMLBK-t',
-        'SUHB': '04Wu_GeSI9_qSF',
-        'SSOLoginState': '1569682984'
+        'ALF': '1572708198',
+        'SCF': 'Ath3LGFZX0FTfy5B1hPlXwqPBhTi85tlI__-vO50T-QtwVFOA8qTZQHnYu9WvdPwQ3zfeo07OVpU2CoVH7jE3Lw.',
+        'SUB': '_2A25wkmIoDeRhGedI7lER9i_Jzj6IHXVQfQ5grDV6PUJbktAKLWn8kW1NVzqyC3OH20h5draiHZcnyiIbKjKFDlcg',
+        'SUBP': '0033WrSXqPxfM725Ws9jqgMF55529P9D9Whnyn0O9rOclhlg5fY2Qk5O5JpX5K-hUgL.Fo2cSKe7So2fSKz2dJLoIpH1IgUQU8iyIg4KdNHV9GSFdNiDdJMt',
+        'SUHB': '06ZUp17PgQTv88',
+        'SSOLoginState': '1570116217'
     }
-    contTemp=''
+    #_T_WM=43586327469; ALF=; SCF=; SUB=; SUBP=; SUHB=; SSOLoginState=
+    # contTemp=''
 
 
     def parse(self, response):
@@ -69,9 +71,8 @@ class WeiboSpider(scrapy.Spider):
 
     def start_requests(self):
         #重写了start_requests方法，可以按照自定义顺序爬取界面
-        #TODO:暂时修改回调函数，记得改回来self.getNextUrl()
         return [
-            scrapy.Request(self.getNextUrl(), callback=self.parse, headers=self.headers, cookies=self.cookies)
+            scrapy.Request(self.getNextUrl(), callback=self.sub_parse, headers=self.headers, cookies=self.cookies)
         ]
 
     def getNextUrl(self):
@@ -96,76 +97,110 @@ class WeiboSpider(scrapy.Spider):
     def sub_parse(self,response):
 
         for i in range(1,len(response.xpath('/html/body/div[@ class="c"]'))-1):
-            item=WeiboInfoItem()
-            repost=response.xpath('/html/body/div[@ class="c"]['+str(i)+']/div[1]/span[1][@ class="cmt"]/a/text()').extract()
-            if(len(repost)==0):    #原创微博
-                content=''
-                contents=response.xpath('/html/body/div[@ class="c"]['+str(i)+']/div[last()]').css('*::text').extract()
-                contents2=response.xpath('/html/body/div[@ class="c"]['+str(i)+']/div[1]').css('*::text').extract()
-                if contents[1]!='原图':
-                    imgs=0
-                else:
-                    if contents2[-2][0:2]=='组图':
-                        imgs=contents2[-2][3]
+            try:
+                item = WeiboInfoItem()
+                repost = response.xpath(
+                    '/html/body/div[@ class="c"][' + str(i) + ']/div[1]/span[1][@ class="cmt"]/a/text()').extract()
+                if (len(repost) == 0):  # 原创微博
+                    content = ''
+                    contents = response.xpath('/html/body/div[@ class="c"][' + str(i) + ']/div[last()]').css(
+                        '*::text').extract()
+                    contents2 = response.xpath('/html/body/div[@ class="c"][' + str(i) + ']/div[1]').css(
+                        '*::text').extract()
+                    if contents[1] != '原图':
+                        imgs = 0
                     else:
-                        imgs=1
-                item['id']=self.url_2[self.url_5]
-                item['repost']=''
-                item['tag']=[]
-                item['at']=[]
-                item['imgNum']=imgs
-                item['likeNum']=contents[-9][2:len(contents[-9]) - 1]
-                item['repostNum']=contents[-7][3:len(contents[-7]) - 1]
-                item['commentNum']=contents[-5][3:len(contents[-5]) - 1]
-                item['time']=contents[-1]
-                temp=response.xpath('/html/body/div[@ class="c"]['+str(i)+']/div[1]/span/a[last()]')
-                if (temp.xpath('text()').extract())[0]=='全文':  #如果需要访问全文
-                    mRequest=scrapy.Request('https://weibo.cn'+(temp.xpath('@href').extract())[0], callback=self.getContent, headers=self.headers, cookies=self.cookies,priority=1)
-                    mRequest.meta['item']=item
-                    yield mRequest
-                else:   #不需要访问全文
-                    if len(contents2)>=3:
-                        if contents2[-3]=='收藏':
-                            for j in range(0, len(contents2) - 11):
-                                content = content + contents2[j]
+                        if contents2[-2][0:2] == '组图':
+                            imgs = contents2[-2][3]
                         else:
-                            if contents2[-1] == ']':
-                                for j in range(0, len(contents2) - 3):
+                            imgs = 1
+                    item['id'] = self.url_2[self.url_5]
+                    item['repost'] = ''
+                    item['tag'] = []
+                    item['at'] = []
+                    item['imgNum'] = imgs
+                    item['likeNum'] = contents[-9][2:len(contents[-9]) - 1]
+                    item['repostNum'] = contents[-7][3:len(contents[-7]) - 1]
+                    item['commentNum'] = contents[-5][3:len(contents[-5]) - 1]
+                    item['time'] = self.getTime(contents[-1])
+                    temp = response.xpath('/html/body/div[@ class="c"][' + str(i) + ']/div[1]/span/a[last()]')
+                    if len(temp.xpath('text()').extract()) == 0:
+                        if len(contents2) >= 3:
+                            if contents2[-3] == '收藏':
+                                for j in range(0, len(contents2) - 11):
                                     content = content + contents2[j]
                             else:
-                                for j in range(0, len(contents2)):
+                                if contents2[-1] == ']':
+                                    for j in range(0, len(contents2) - 3):
+                                        content = content + contents2[j]
+                                else:
+                                    for j in range(0, len(contents2)):
+                                        content = content + contents2[j]
+                        elif contents2[-1] == ']':
+                            for j in range(0, len(contents2) - 3):
+                                content = content + contents2[j]
+                        else:
+                            for j in range(0, len(contents2)):
+                                content = content + contents2[j]
+                        item['content'] = content
+                        item['tag'] = self.getTags(item['content'])
+                        item['at'] = self.getAts(item['content'])
+                        # self.printWeiboInfoItem(item)
+                        yield item
+                    elif (temp.xpath('text()').extract())[0] == '全文':  # 如果需要访问全文
+                        mRequest = scrapy.Request('https://weibo.cn' + (temp.xpath('@href').extract())[0],
+                                                  callback=self.getContent, headers=self.headers, cookies=self.cookies,
+                                                  priority=1)
+                        mRequest.meta['item'] = item
+                        yield mRequest
+                    else:  # 不需要访问全文
+                        if len(contents2) >= 3:
+                            if contents2[-3] == '收藏':
+                                for j in range(0, len(contents2) - 11):
                                     content = content + contents2[j]
-                    elif contents2[-1]==']':
-                        for j in range(0,len(contents2)-3):
-                            content=content+contents2[j]
-                    else:
-                        for j in range(0,len(contents2)):
-                            content=content+contents2[j]
-                    item['content']=content
+                            else:
+                                if contents2[-1] == ']':
+                                    for j in range(0, len(contents2) - 3):
+                                        content = content + contents2[j]
+                                else:
+                                    for j in range(0, len(contents2)):
+                                        content = content + contents2[j]
+                        elif contents2[-1] == ']':
+                            for j in range(0, len(contents2) - 3):
+                                content = content + contents2[j]
+                        else:
+                            for j in range(0, len(contents2)):
+                                content = content + contents2[j]
+                        item['content'] = content
+                        item['tag'] = self.getTags(item['content'])
+                        item['at'] = self.getAts(item['content'])
+                        # self.printWeiboInfoItem(item)
+                        yield item
+
+                else:  # 转发的微博
+
+                    contents = response.xpath('/html/body/div[@ class="c"][' + str(i) + ']/div[last()]').css(
+                        '*::text').extract()
+                    content = ''
+
+                    for i in range(1, len(contents) - 9):
+                        content = content + contents[i]
+                    item['id'] = self.url_2[self.url_5]
+                    item['repost'] = repost[0]
+                    item['imgNum'] = 0
+                    item['likeNum'] = contents[-9][2:len(contents[-9]) - 1]
+                    item['repostNum'] = contents[-7][3:len(contents[-7]) - 1]
+                    item['commentNum'] = contents[-5][3:len(contents[-5]) - 1]
+                    item['time'] = self.getTime(contents[-1])
+                    item['content'] = content
                     item['tag'] = self.getTags(item['content'])
                     item['at'] = self.getAts(item['content'])
-                    self.printWeiboInfoItem(item)
+                    # self.printWeiboInfoItem(item)
                     yield item
-
-            else:      #转发的微博
-
-                contents=response.xpath('/html/body/div[@ class="c"]['+str(i)+']/div[last()]').css('*::text').extract()
-                content=''
-
-                for i in range(1,len(contents)-9):
-                    content=content+contents[i]
-                item['id'] = self.url_2[self.url_5]
-                item['repost'] = repost[0]
-                item['imgNum'] = 0
-                item['likeNum'] = contents[-9][2:len(contents[-9]) - 1]
-                item['repostNum'] = contents[-7][3:len(contents[-7]) - 1]
-                item['commentNum'] = contents[-5][3:len(contents[-5]) - 1]
-                item['time'] = contents[-1]
-                item['content']=content
-                item['tag'] = self.getTags(item['content'])
-                item['at'] = self.getAts(item['content'])
-                self.printWeiboInfoItem(item)
-                yield item
+            except Exception as e:
+                print(e)
+                pass
+            continue
         url = self.getNextUrl()
         if (len(url) != 0):
             if (self.url_4 < self.weiboNum):
@@ -195,7 +230,7 @@ class WeiboSpider(scrapy.Spider):
         item['content']=content
         item['tag']=self.getTags(item['content'])
         item['at']=self.getAts(item['content'])
-        self.printWeiboInfoItem(item)
+        # self.printWeiboInfoItem(item)
         yield item
 
     def printWeiboInfoItem(self,item):   #打印类，可解开注释使用
@@ -219,3 +254,23 @@ class WeiboSpider(scrapy.Spider):
         pattern=re.compile(r'\@[^ ]*')
         result = pattern.findall(content)
         return result
+
+    def getTime(self,mTime):
+        result=''
+        mTime=mTime.split()
+        if mTime[0][-1]=='前':
+
+            m=int(mTime[0][0:len(mTime[0])-3])
+            result=(datetime.datetime.now()-datetime.timedelta(minutes=m)).strftime('%Y-%m-%d %H:%M')
+            return result
+
+        if mTime[0]=='今天' :
+            result=datetime.datetime.now().strftime('%Y-%m-%d')
+        elif mTime[0][2:3]=='月':
+            result = datetime.datetime.now().strftime('%Y')+'-'+mTime[0][0:2]+'-'+mTime[0][3:5]
+        else:
+            result=mTime[0]
+
+        result=result+' '+mTime[1]
+        return result
+
