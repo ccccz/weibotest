@@ -90,7 +90,7 @@ class WeiboSpider(scrapy.Spider):
                 self.url_5=self.url_5+1
                 if(self.url_5==len(self.url_2)):
                     return ''
-                self.url_4=0
+                self.url_4=1
                 url = self.url_1 + self.url_2[self.url_5] + self.url_3
                 url = url + str(self.url_4)
                 self.url_4 = self.url_4 + 1
