@@ -11,9 +11,16 @@ COOKIES_ENABLED = True
 
 # MongoDB 相关配置
 MONGO_HOST = '94.191.110.118'
+# MONGO_HOST = 'localhost'
 MONGO_PORT = 27017
 MONGO_DB_NAME = 'university_weibo'
 COOKIES_COLLECTION_NAME = 'cookies_pool'
+SCHOOL_BASE_INFO = 'base_info'
+
+#others
+LOCAL_MONGO_HOST = '94.191.110.118'
+LOCAL_MONGO_PORT = 27017
+DB_NAME = 'university_weibo'
 
 # 启用 pipeline
 ITEM_PIPELINES = {
@@ -27,10 +34,10 @@ DOWNLOADER_MIDDLEWARES = {
 
 # User-Agent 池
 USER_AGENT_POOL = [
+'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Safari/537.36',
     'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.1 (KHTML, like Gecko) Chrome/14.0.835.163 Safari/535.1',
-    'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:6.0) Gecko/20100101 Firefox/6.0',
-    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50'
+    'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:6.0) Gecko/20100101 Firefox/6.0'
 ]
 
 # 模拟登陆相关配置
@@ -64,3 +71,5 @@ WB_LOGIN_HEADERS = {
     'Sec-Fetch-Mode': 'cors',
     'Referer': 'https://passport.weibo.cn/signin/login?entry=mweibo&r=https%3A%2F%2Fweibo.cn%2F%3Fluicode%3D10000011%26lfid%3D100103type%253D1%2526q%253D%25E5%258D%2597%25E4%25BA%25AC%25E5%25A4%25A7%25E5%25AD%25A6&backTitle=%CE%A2%B2%A9&vt='
 }
+
+

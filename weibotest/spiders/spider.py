@@ -1,25 +1,29 @@
+import pymongo
 import scrapy
 from weibotest.items import BaseInfoItem
 from weibotest.items import WeiboInfoItem
 import re
 import datetime
+import json
+import traceback
+
+from weibotest.settings import MONGO_HOST, MONGO_PORT, MONGO_DB_NAME, SCHOOL_BASE_INFO
+
 
 class WeiboSpider(scrapy.Spider):
     name="weibo"
     #url
     url_1="https://weibo.cn/"
-    url_2=[    #此处可改为从文件读取
-        "nju1902",
-        "PKU",
-        "ifudan"
-    ]
+    url_2=[
+        # 'nju1902'
+    ]   #此处已改为从文件读取
     url_3="?page="
-    url_4=389   #搜索页面
-    url_5 = 0  #高校顺序url_2
+    url_4=1   #搜索页面
+    url_5 = 0  #高校顺序url_2    #TODO:起始高校位置
 
     weiboNum=1000  #正在爬取的高校微博页数
     headers={               #头部
-        'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36'
+        'user-agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50'
     }
     meta={
         'dont_redirect': True,  # 禁止网页重定向
@@ -34,24 +38,19 @@ class WeiboSpider(scrapy.Spider):
         'SUHB': '06ZUp17PgQTv88',
         'SSOLoginState': '1570116217'
     }
-    #_T_WM=43586327469; ALF=; SCF=; SUB=; SUBP=; SUHB=; SSOLoginState=
-    # contTemp=''
 
 
     def parse(self, response):
-        #具体爬取内容，目前只有粉丝数可和关注数，微博内容未写
-        #filename = (response.url.split("/")[-1]).split("?")[0]
-
 
         if(self.url_4==1):
             name = self.url_2[self.url_5]
-            wb=response.xpath("/html/body/div[3]/div/span/text()").extract()
+            wb=response.xpath('/html/body/div[@ class="u"]/div/span/text()').extract()
             wb=wb[0][3:len(wb[0])-1]
-            fans = response.xpath('/ html / body / div[3] / div / a[2] / text()').extract()
+            fans = response.xpath('/ html / body / div[@ class="u"] / div / a[2] / text()').extract()
             fans=fans[0][3:len(fans[0])-1]
-            follows = response.xpath('/ html / body / div[3] / div / a[1] / text()').extract()
+            follows = response.xpath('/ html / body / div[@ class="u"] / div / a[1] / text()').extract()
             follows=follows[0][3:len(follows[0])-1]
-            self.weiboNum=int(wb)/10
+            # self.weiboNum=int(wb)/10
             item=BaseInfoItem()
             item['id']=name
             item['wb']=wb
@@ -66,17 +65,22 @@ class WeiboSpider(scrapy.Spider):
 
         url=self.getNextUrl()
         if(len(url)!=0):
-            yield scrapy.Request(url, callback=self.sub_parse, headers=self.headers, cookies=self.cookies)
+            yield scrapy.Request(url, callback=self.parse, headers=self.headers, cookies=self.cookies)
 
 
     def start_requests(self):
         #重写了start_requests方法，可以按照自定义顺序爬取界面
+        with open('weibotest/schools.js','r',encoding='UTF-8') as f:
+            schArray=json.loads(f.read())
+            for sch in schArray["university_list"]:
+                self.url_2.append(sch['id'])
+                print(sch['id'])
         return [
             scrapy.Request(self.getNextUrl(), callback=self.sub_parse, headers=self.headers, cookies=self.cookies)
         ]
 
     def getNextUrl(self):
-        if(self.url_5<len(self.url_2)):
+        if(self.url_5<10):   #TODO:结束高校位置
             url=self.url_1+self.url_2[self.url_5]+self.url_3
             if(self.url_4<self.weiboNum):
                 #self.weiboNum
@@ -96,6 +100,14 @@ class WeiboSpider(scrapy.Spider):
 
     def sub_parse(self,response):
 
+        if self.url_4 == 2:
+            # print(self.weiboNum)
+            wbPage=response.xpath('/html/body/div[@ id="pagelist"]/form/div/text()').extract()
+            self.weiboNum=wbPage[-1][str(wbPage[-1]).index('/')+1:len(wbPage[-1])-1]
+            # print(wbPage)
+            self.weiboNum=int(self.weiboNum)
+            print(self.weiboNum)
+
         for i in range(1,len(response.xpath('/html/body/div[@ class="c"]'))-1):
             try:
                 item = WeiboInfoItem()
@@ -107,8 +119,14 @@ class WeiboSpider(scrapy.Spider):
                         '*::text').extract()
                     contents2 = response.xpath('/html/body/div[@ class="c"][' + str(i) + ']/div[1]').css(
                         '*::text').extract()
+                    # print(contents[-2][-2:-1])
+                    if contents[-2][-2:-1] == '来':
+                        contents=contents[0:len(contents)-1]
+                    # print(contents)
+                    # print(contents2)
                     if contents[1] != '原图':
                         imgs = 0
+                        contents2=contents2[0:len(contents2)-10]
                     else:
                         if contents2[-2][0:2] == '组图':
                             imgs = contents2[-2][3]
@@ -148,6 +166,28 @@ class WeiboSpider(scrapy.Spider):
                         # self.printWeiboInfoItem(item)
                         yield item
                     elif (temp.xpath('text()').extract())[0] == '全文':  # 如果需要访问全文
+                        #有备无患，用于在无法访问详情界面时得到大致内容
+                        if len(contents2) >= 3:
+                            if contents2[-3] == '收藏':
+                                for j in range(0, len(contents2) - 11):
+                                    content = content + contents2[j]
+                            else:
+                                if contents2[-1] == ']':
+                                    for j in range(0, len(contents2) - 3):
+                                        content = content + contents2[j]
+                                else:
+                                    for j in range(0, len(contents2)):
+                                        content = content + contents2[j]
+                        elif contents2[-1] == ']':
+                            for j in range(0, len(contents2) - 3):
+                                content = content + contents2[j]
+                        else:
+                            for j in range(0, len(contents2)):
+                                content = content + contents2[j]
+                        item['content'] = content
+                        item['tag'] = self.getTags(item['content'])
+                        item['at'] = self.getAts(item['content'])
+                        #访问具体内容
                         mRequest = scrapy.Request('https://weibo.cn' + (temp.xpath('@href').extract())[0],
                                                   callback=self.getContent, headers=self.headers, cookies=self.cookies,
                                                   priority=1)
@@ -198,20 +238,17 @@ class WeiboSpider(scrapy.Spider):
                     # self.printWeiboInfoItem(item)
                     yield item
             except Exception as e:
-                print(e)
+                # print(e)
+                print(traceback.format_exc())
                 pass
             continue
         url = self.getNextUrl()
         if (len(url) != 0):
-            if (self.url_4 < self.weiboNum):
-                yield scrapy.Request(url, callback=self.sub_parse, headers=self.headers,
-                                     cookies=self.cookies)
-            else:
-                yield scrapy.Request(url, callback=self.parse, headers=self.headers, cookies=self.cookies)
+            yield scrapy.Request(url, callback=self.sub_parse, headers=self.headers,
+                                 cookies=self.cookies)
 
 
 
-    # self.weiboNum
 
     def getContent(self,response):
         item=response.meta['item']
@@ -256,6 +293,7 @@ class WeiboSpider(scrapy.Spider):
         return result
 
     def getTime(self,mTime):
+        # print(mTime)
         result=''
         mTime=mTime.split()
         if mTime[0][-1]=='前':
@@ -271,6 +309,6 @@ class WeiboSpider(scrapy.Spider):
         else:
             result=mTime[0]
 
-        result=result+' '+mTime[1]
+        result=result+' '+mTime[1][0:5]
         return result
 

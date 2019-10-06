@@ -12,6 +12,7 @@ from weibotest.settings import MONGO_PORT
 from weibotest.settings import MONGO_DB_NAME
 from weibotest.settings import COOKIES_COLLECTION_NAME
 from weibotest.cookies import init_cookies
+import time
 
 
 class WeibotestSpiderMiddleware(object):
@@ -138,7 +139,10 @@ class WeiboCookiesMiddleware(RetryMiddleware):
         return cls(crawler.settings, crawler)
 
     def process_request(self, request, spider):
+        time.sleep(random.randint(0,3))
         random_cookies = random.choice(self.cookies_pool)
         self.logger.warning("本次请求使用 cookies:")
         self.logger.warning(random_cookies)
         request.cookies = random_cookies
+
+
