@@ -128,7 +128,9 @@ class WeiboSpider(scrapy.Spider):
                         imgs = 0
                         contents2=contents2[0:len(contents2)-10]
                     else:
-                        if contents2[-2][0:2] == '组图':
+                        if len(contents2)==1:
+                            img=1
+                        elif contents2[-2][0:2] == '组图':
                             imgs = contents2[-2][3]
                         else:
                             imgs = 1
