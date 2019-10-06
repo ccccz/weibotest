@@ -18,10 +18,10 @@ class WeiboSpider(scrapy.Spider):
         # 'nju1902'
     ]   #此处已改为从文件读取
     url_3="?page="
-    url_4=1   #搜索页面
-    url_5 = 0  #高校顺序url_2    #TODO:起始高校位置
+    url_4= 817  #搜索页面
+    url_5 = 9  #高校顺序url_2    #TODO:起始高校位置
 
-    weiboNum=1000  #正在爬取的高校微博页数
+    weiboNum=2269  #正在爬取的高校微博页数
     headers={               #头部
         'user-agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50'
     }
@@ -119,6 +119,7 @@ class WeiboSpider(scrapy.Spider):
                         '*::text').extract()
                     contents2 = response.xpath('/html/body/div[@ class="c"][' + str(i) + ']/div[1]').css(
                         '*::text').extract()
+                    # print(contents)
                     # print(contents[-2][-2:-1])
                     if contents[-2][-2:-1] == '来':
                         contents=contents[0:len(contents)-1]
@@ -129,7 +130,7 @@ class WeiboSpider(scrapy.Spider):
                         contents2=contents2[0:len(contents2)-10]
                     else:
                         if len(contents2)==1:
-                            img=1
+                            imgs=1
                         elif contents2[-2][0:2] == '组图':
                             imgs = contents2[-2][3]
                         else:
@@ -224,6 +225,9 @@ class WeiboSpider(scrapy.Spider):
                     contents = response.xpath('/html/body/div[@ class="c"][' + str(i) + ']/div[last()]').css(
                         '*::text').extract()
                     content = ''
+
+                    if contents[-2][-2:-1] == '来':
+                        contents=contents[0:len(contents)-1]
 
                     for i in range(1, len(contents) - 9):
                         content = content + contents[i]

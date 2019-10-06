@@ -139,7 +139,7 @@ class WeiboCookiesMiddleware(RetryMiddleware):
         return cls(crawler.settings, crawler)
 
     def process_request(self, request, spider):
-        time.sleep(random.randint(0,3))
+        time.sleep(random.randint(0,2))
         random_cookies = random.choice(self.cookies_pool)
         self.logger.warning("本次请求使用 cookies:")
         self.logger.warning(random_cookies)

@@ -17,11 +17,6 @@ MONGO_DB_NAME = 'university_weibo'
 COOKIES_COLLECTION_NAME = 'cookies_pool'
 SCHOOL_BASE_INFO = 'base_info'
 
-#others
-LOCAL_MONGO_HOST = '94.191.110.118'
-LOCAL_MONGO_PORT = 27017
-DB_NAME = 'university_weibo'
-
 # 启用 pipeline
 ITEM_PIPELINES = {
     'weibotest.pipelines.MongoPipeline': 300
