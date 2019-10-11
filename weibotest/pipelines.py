@@ -6,6 +6,7 @@ from weibotest.settings import MONGO_PORT
 from weibotest.settings import MONGO_DB_NAME
 import pymongo
 
+
 class MongoPipeline(object):
 
     # 初始化数据库连接信息
@@ -23,8 +24,8 @@ class MongoPipeline(object):
         if isinstance(item, BaseInfoItem):
             self.base_info.insert(dict(item))
         elif isinstance(item, WeiboInfoItem):
-            collectionName = str(item['id']) + "_weibo_info"
-            self.db[collectionName].insert(dict(item))
+            collection_name = str(item['id']) + "_weibo_info"
+            self.db[collection_name].insert(dict(item))
         elif isinstance(item, FollowsInfoItem):
             self.follows_info.insert(dict(item))
         else:
