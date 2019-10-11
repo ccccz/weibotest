@@ -16,6 +16,7 @@ MONGO_PORT = 27017
 MONGO_DB_NAME = 'university_weibo'
 COOKIES_COLLECTION_NAME = 'cookies_pool'
 SCHOOL_BASE_INFO = 'base_info'
+SCHOOL_FOLLOWS_INFO = 'follows_info'
 
 # 启用 pipeline
 ITEM_PIPELINES = {

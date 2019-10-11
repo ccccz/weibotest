@@ -1,5 +1,6 @@
 from weibotest.items import BaseInfoItem
 from weibotest.items import WeiboInfoItem
+from weibotest.items import FollowsInfoItem
 from weibotest.settings import MONGO_HOST
 from weibotest.settings import MONGO_PORT
 from weibotest.settings import MONGO_DB_NAME
@@ -15,6 +16,7 @@ class MongoPipeline(object):
         client = pymongo.MongoClient(host, port)
         self.db = client[db_name]
         self.base_info = self.db["base_info"]
+        self.follows_info = self.db["follows_info"]
 
     # 判断 Item 的类型并存入相应的集合
     def process_item(self, item, spider):
@@ -23,5 +25,7 @@ class MongoPipeline(object):
         elif isinstance(item, WeiboInfoItem):
             collectionName = str(item['id']) + "_weibo_info"
             self.db[collectionName].insert(dict(item))
+        elif isinstance(item, FollowsInfoItem):
+            self.follows_info.insert(dict(item))
         else:
             pass

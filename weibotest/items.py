@@ -22,3 +22,9 @@ class WeiboInfoItem(scrapy.Item):
     commentNum = scrapy.Field() # 评论数
     time = scrapy.Field()       # 发微时间4
     pass
+
+
+class FollowsInfoItem(scrapy.Item):
+    id = scrapy.Field()         # 大学Id
+    followsList = scrapy.Field()# 关注列表
+    pass

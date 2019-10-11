@@ -18,10 +18,10 @@ class WeiboSpider(scrapy.Spider):
         # 'nju1902'
     ]   #此处已改为从文件读取
     url_3="?page="
-    url_4= 1976  #搜索页面
-    url_5 = 20  #高校顺序url_2    #TODO:起始高校位置
+    url_4= 2202#搜索页面
+    url_5 = 88  #高校顺序url5_2    #TODO:起始高校位置
 
-    weiboNum=2094  #正在爬取的高校微博页数
+    weiboNum= 3058 #正在爬取的高校微博页数
     headers={               #头部
         'user-agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50'
     }
@@ -80,7 +80,7 @@ class WeiboSpider(scrapy.Spider):
         ]
 
     def getNextUrl(self):
-        if(self.url_5<30):   #TODO:结束高校位置
+        if(self.url_5<90):   #TODO:结束高校位置
             url=self.url_1+self.url_2[self.url_5]+self.url_3
             if(self.url_4<self.weiboNum):
                 #self.weiboNum
@@ -88,7 +88,7 @@ class WeiboSpider(scrapy.Spider):
                 self.url_4=self.url_4+1
             else:
                 self.url_5=self.url_5+1
-                if(self.url_5==len(self.url_2) or self.url_5==30):  #TODO:这里这里，记得加
+                if(self.url_5==len(self.url_2) or self.url_5==90):  #TODO:这里这里，记得加
                     return ''
                 self.url_4=1
                 url = self.url_1 + self.url_2[self.url_5] + self.url_3
